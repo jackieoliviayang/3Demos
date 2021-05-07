@@ -248,6 +248,67 @@ const fields = {
   // },
 }
 
+// surface area f(x,y,z) = 1
+
+const integralTexBox = document.createElement("div");
+integralTexBox.classList.add("integralbox");
+document.body.appendChild(integralTexBox);
+
+const integralTexElement = document.createElement("div");
+integralTexElement.classList.add("w3-padding");
+integralTexElement.classList.add("integralthing");
+integralTexBox.appendChild(integralTexElement);
+integralTexElement.style.display = "block";
+
+integralTexElement.style.width = "400px";
+
+const variableOrder = ["u","v"];
+const varTranslate = {"u": "cd", "v": "ab"};
+
+function updateTexElement() {
+  const [U,V] = variableOrder;
+  const a = rData[varTranslate[V][0]], b = rData[varTranslate[V][1]];
+  const c = rData[varTranslate[U][0]], d = rData[varTranslate[U][1]];
+  
+  let intString = "$$\\int_{" + a.toTex() + "}^{" + b.toTex() + "}\\int_{" 
+  + c.toTex() + "}^{" + d.toTex() + "}" + "1" + "|\\vec r_u \\times \\vec r_v|" + " \\,d${U}\\,d${V} "; //surface area
+  
+  const xu = math.derivative(rData.x.toString(), "u");
+  const yu = math.derivative(rData.y.toString(), "u");
+  const zu = math.derivative(rData.z.toString(), "u");
+
+  const xv = math.derivative(rData.x.toString(), "v");
+  const yv = math.derivative(rData.y.toString(), "v");
+  const zv = math.derivative(rData.z.toString(), "v");
+
+  const norm = math.cross([xu, yu, zu], [xv, yv, zv]);
+  const unorm = math.sqrt(math.dot(norm, norm));
+  rData.f = unorm;
+
+  const params = {}; 
+  const intValue = gaussLegendre(
+    v => {
+      params[V] = v;
+      return gaussLegendre(
+        u =>  {
+          params[U] = u;
+          return rData.f.evaluate( params );
+        },
+        c.evaluate( params ),
+        d.evaluate( params ),
+        10
+      );
+    },
+    a.evaluate( params ),
+    b.evaluate( params ),
+    10
+  );
+  
+  integralTexElement.innerHTML = intString + "\\approx " + (Math.round(intValue*1000)/1000).toString() + " $$"
+  
+  MathJax.typeset();
+}
+
 // Add bodies to the "physical" fields.
 
 {
@@ -582,6 +643,8 @@ function updateSurface() {
   updateShards(data.shards);
   if (!frameRequested) render();
    
+  updateTexElement();
+  requestFrameIfNotRequested();
 }
 
 // Exercises
